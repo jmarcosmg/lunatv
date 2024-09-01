@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>List</title>
+  <style type="text/css">
+    .d-none {
+      display: none;
+    }
+
+    .full-screen {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    input {
+      margin-bottom: 10px;
+      padding: 5px;
+      width: 100%;
+    }
+
+    .list-item {
+      cursor: pointer;
+      margin-bottom: 5px;
+      padding: 5px;
+      border: 1px solid #ddd;
+    }
+
+    .list-item:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <input type="text" id="search" placeholder="Search...">
+  <div id="List"></div>
+  <video id="tv" class="d-none" controls></video>
+
+  <!-- Adicionando a biblioteca Hls.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <script>
+    // Referências aos elementos
+    const listElement = document.getElementById('List');
+    const videoElement = document.getElementById('tv');
+    const searchInput = document.getElementById('search');
+
+    let jsonData = []; // Variável para armazenar os dados do JSON
+
+    // Função para buscar o JSON externo
+    function fetchJsonData() {
+      fetch('list.json')
+        .then(response => response.json())
+        .then(data => {
+          jsonData = data; // Armazena os dados na variável jsonData
+          populateList(jsonData); // Popula a lista inicialmente
+        })
+        .catch(error => console.error('Erro ao carregar o arquivo JSON:', error));
+    }
+
+    // Função para criar os itens da lista
+    function populateList(items) {
+      listElement.innerHTML = ''; // Limpa a lista
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.textContent = item.titulo;
+        div.addEventListener('click', () => playVideo(item.link));
+        listElement.appendChild(div);
+      });
+    }
+
+    // Função para filtrar a lista com base na pesquisa
+    function filterList() {
+      const searchText = searchInput.value.toLowerCase();
+      const filteredItems = jsonData.filter(item => item.titulo.toLowerCase().includes(searchText));
+      populateList(filteredItems);
+    }
+
+    // Função para carregar e reproduzir o vídeo
+    function playVideo(link) {
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(link);
+        hls.attachMedia(videoElement);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          videoElement.play();
+        });
+      } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+        // Suporte nativo para HLS (Safari)
+        videoElement.src = link;
+        videoElement.play();
+      } else {
+        console.error('Seu navegador não suporta HLS.js ou HLS nativo.');
+      }
+
+      videoElement.classList.remove('d-none');
+      videoElement.classList.add('full-screen');
+
+      // Coloca o vídeo em tela cheia
+      if (videoElement.requestFullscreen) {
+        videoElement.requestFullscreen();
+      } else if (videoElement.webkitRequestFullscreen) { /* Safari */
+        videoElement.webkitRequestFullscreen();
+      } else if (videoElement.msRequestFullscreen) { /* IE11 */
+        videoElement.msRequestFullscreen();
+      }
+    }
+
+    // Evento de input para o campo de busca
+    searchInput.addEventListener('input', filterList);
+
+    // Busca o JSON e popula a lista ao carregar a página
+    fetchJsonData();
+  </script>
+</body>
+</html>
